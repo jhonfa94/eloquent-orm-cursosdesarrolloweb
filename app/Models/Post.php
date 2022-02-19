@@ -28,6 +28,10 @@ class Post extends Model
         "title_with_author"
     ];
 
+    protected $casts = [
+        "created_at" => "datetime:Y-m-d"
+    ];
+
     // protected $with = ["user:id,name,email",]; # SE CARGA DE FORMA AUTOMATICA
 
 

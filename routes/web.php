@@ -379,6 +379,38 @@ Route::get("/custom-attributes/{id}", function (int $id) {
 
 
 /**
+ * BUSCA POST POR FECHA DE ALTA, VÁLIDO FORMATO Y-m-d
+ * ejemplo: url/by-created/2022-02-19
+ */
+Route::get("/by-created/{date}", function (string $date) {
+
+    return Post::whereDate('created_at', $date)->get();
+});
+
+/**
+ * BUSCA POST POR DÍA Y MES EN FECHA DE ALTA
+ * ejemplo: url/by-created-at_month-day/2022-02-19
+ */
+Route::get("/by-created-at_month-day/{day}/{month}", function (int $day, int $month) {
+
+    return Post::whereMonth('created_at', $month)
+        ->whereDay('created_at', $day)
+        ->get();
+});
+
+/**
+ * BUSCA POST POR UN RANGO DE FECHAS DE ALTA
+ * ejemplo: http://127.0.0.1:8000/by-created-at/2022-01-28/2022-02-28
+ */
+Route::get("/by-created-at/{start}/{end}", function (string $start, string $end) {
+
+    return Post::whereBetween('created_at', [$start, $end])->get();
+});
+
+
+
+
+/**
  * PLANTILLA ROUTER
  */
 Route::get("/plantilla-router/{id}", function (int $id) {
