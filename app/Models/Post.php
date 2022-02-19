@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,12 +24,32 @@ class Post extends Model
         'dislikes',
     ];
 
+    protected $appends = [
+        "title_with_author"
+    ];
+
+    // protected $with = ["user:id,name,email",]; # SE CARGA DE FORMA AUTOMATICA
+
+
+
 
     public function setTitleAttribute(string $title)
     {
         $this->attributes['title'] = $title;
         $this->attributes['slug'] = Str::slug($title);
     }
+
+    /**
+     * Atributto personalizado
+     *
+     * @return string
+     */
+    public function getTitleWithAuthorAttribute(): string
+    {
+        return sprintf("%s - %s", $this->title, $this->user->name);
+    }
+
+
 
     /* =====================
       REALACIONES
@@ -62,5 +83,32 @@ class Post extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    /**
+     * Tags ordenados
+     *
+     * @return BelongsToMany
+     */
+    public function sortedTags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->orderBy('tag', 'asc');
+    }
+
+    /**
+     * SCOPE para los tags
+     *
+     * @param Builder $builder
+     * @return Builder
+     */
+    public function scopeWhereHasTagsWithTags(Builder $builder): Builder
+    {
+        //scopeWhereHasTagsWithTags
+        return $builder
+            ->select(['id', 'title'])
+            ->with("tags:id,tag")
+            ->whereHas("tags");
+        // ->whereDoesntHave("tags")
+        // ->get();
     }
 }

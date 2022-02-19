@@ -12,6 +12,8 @@ class Tag extends Model
 
     protected $fillable = ['tag'];
 
+    protected $hidden =['pivot'];
+
     /* =====================
       RELACIONES
     ========================= */
