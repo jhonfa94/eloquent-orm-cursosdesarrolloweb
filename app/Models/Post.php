@@ -34,6 +34,12 @@ class Post extends Model
 
     // protected $with = ["user:id,name,email",]; # SE CARGA DE FORMA AUTOMATICA
 
+    protected static function booted() {
+        static::addGlobalScope("currentMonth", function (Builder $builder) {
+            $builder->whereMonth("created_at", now()->month);
+        });
+    }
+
 
 
 
@@ -66,7 +72,10 @@ class Post extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withDefault([
+            'id' => -1,
+            'name' => 'No existe'
+        ]);
     }
 
     /**

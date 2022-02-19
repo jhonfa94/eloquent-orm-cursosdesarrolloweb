@@ -44,6 +44,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'banned' => 'boolean'
     ];
 
     /* =====================
@@ -65,7 +66,7 @@ class User extends Authenticatable
      *
      * @return HasMany
      */
-    public function post():HasMany
+    public function posts():HasMany
     {
         return $this->hasMany(Post::class);
     }

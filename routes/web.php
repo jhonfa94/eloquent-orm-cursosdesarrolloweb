@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\Billing;
 use App\Models\Category;
 use App\Models\Tag;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -407,6 +408,121 @@ Route::get("/by-created-at/{start}/{end}", function (string $start, string $end)
     return Post::whereBetween('created_at', [$start, $end])->get();
 });
 
+
+/**
+ * OBTIENE TODOS LOS POSTS QUE EL DÍA DEL MES SEA SUPERIOR A 5 O UNO POR SLUG SI EXISTE LA QUERYSTRING SLUG
+ * EJEMPLO: http://127.0.0.1/when-slug?slug=<slug>
+ */
+Route::get("/when-slug", function () {
+    return Post::whereMonth('created_at', now()->month)
+        ->whereDay('created_at', '>=', 5)
+        ->when(request()->query("slug"), function (Builder $builder) {
+            $builder->whereSlug(request()->query("slug"));
+        })
+        ->get();
+});
+
+
+/**
+ * SUBQUERIES PARA COSULTAS AVANZADAS
+ */
+Route::get("/subquery", function () {
+    return User::where(function (Builder $builder) {
+        $builder->where("banned", true)
+            ->where("age", ">=", 50);
+    })
+        ->orWhere(function (Builder $builder) {
+            $builder->where("banned", false)
+                ->where("age", "<=", 50);
+        })
+        ->get();
+});
+
+/**
+ * SCOPE GLOBAL EN POSTS PARA OBTENER SÓLO POSTS DE ESTE MES
+ *
+ */
+Route::get("/global-scope-posts-current-month", function () {
+    return Post::count();
+});
+
+/**
+ * DESHABILITAR SCOPE GLOBAL EN POSTS PARA OBTENER TODOS LOS POSTS
+ */
+Route::get("/without-global-scope-posts-current-month", function () {
+    return Post::withoutGlobalScope("currentMonth")->count();
+});
+
+/**
+ * POST AGRUPADOS POR CATEGORÍA CON SUMA DE LIKS Y DISLIKES
+ */
+Route::get("/query-raw", function () {
+    return Post::withoutGlobalScope("currentMonth")
+        ->with("category")
+        ->select([
+            "id",
+            "category_id",
+            "likes",
+            "dislikes",
+            DB::raw("SUM(likes) as total_likes"),
+            DB::raw("SUM(dislikes) as total_dislikes"),
+        ])
+        ->groupBy("category_id")
+        ->get();
+});
+
+
+/**
+ * POST AGRUPADOS POR CATEGORÍA CON SUMA DE LIKS Y DISLIKES QUE SUMEN MÁS DE 100 LIKES
+ */
+Route::get("/query-raw-having-raw", function () {
+    return Post::withoutGlobalScope("currentMonth")
+        ->with("category")
+        ->select([
+            "id",
+            "category_id",
+            "likes",
+            "dislikes",
+            DB::raw("SUM(likes) as total_likes"),
+            DB::raw("SUM(dislikes) as total_dislikes"),
+        ])
+        ->groupBy("category_id")
+        ->havingRaw("SUM(likes) >= ?", [110])
+        ->get();
+});
+
+
+/**
+ * USUARIOS ORDENADOS POR SU ÚLTIMO POST
+ */
+Route::get("/order-by-subqueries", function () {
+    return User::select(["id", "name"])
+        ->has("posts")
+        ->orderByDesc(
+            Post::withoutGlobalScope("currentMonth")
+                ->select("created_at")
+                ->whereColumn("user_id", "users.id")
+                ->orderBy("created_at", "desc")
+                ->limit(1)
+        )
+        ->get();
+});
+
+/**
+ * USUARIOS QUE TIENE POSTS CON SU ÚLTIMO POST PUBLICADO
+ */
+Route::get("/select-subqueries", function () {
+    return User::select(["id", "name"])
+        ->has("posts")
+        ->addSelect([
+            "last_post" => Post::withoutGlobalScope("currentMonth")
+            ->select('title')
+            ->whereColumn("user_id","users.id")
+            ->orderBy("created_at","desc")
+            ->limit(1)
+        ])
+        ->get();
+});
 
 
 
