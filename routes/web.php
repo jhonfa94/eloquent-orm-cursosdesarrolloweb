@@ -516,18 +516,100 @@ Route::get("/select-subqueries", function () {
         ->has("posts")
         ->addSelect([
             "last_post" => Post::withoutGlobalScope("currentMonth")
-            ->select('title')
-            ->whereColumn("user_id","users.id")
-            ->orderBy("created_at","desc")
-            ->limit(1)
+                ->select('title')
+                ->whereColumn("user_id", "users.id")
+                ->orderBy("created_at", "desc")
+                ->limit(1)
         ])
         ->get();
 });
 
 
+/**
+ * INSERT MASIVO DE USUARIOS
+ */
+Route::get("/multiple-insert", function () {
+    $users = new Collection;
+    for ($i = 1; $i <= 20; $i++) {
+        $users->push([
+            "name" => "usuario $i",
+            "email" => "usuario$i@m.com",
+            "password" => bcrypt("password"),
+            "email_verified_at" => now(),
+            "created_at" => now(),
+            "age" => rand(20, 50)
+        ]);
+    }
+    User::insert($users->toArray());
+});
 
 /**
- * PLANTILLA ROUTER
+ * INSERT BATCH
  */
-Route::get("/plantilla-router/{id}", function (int $id) {
+Route::get("/batch-insert", function () {
+    $userInstance = new User;
+    $columns = [
+        'name',
+        'email',
+        'password',
+        'age',
+        'banned',
+        'email_verified_at',
+        'created_at'
+    ];
+    $users = new Collection;
+    for ($i = 1; $i <= 150; $i++) {
+        $users->push([
+            "usuario $i",
+            "usuario$i@m.com",
+            bcrypt("password"),
+            rand(20, 50),
+            rand(0, 1),
+            now(),
+            now(),
+        ]);
+    }
+    $batchSize = 100; // insert 500 (default), 100 minimum rows in one query
+
+    /** @var Mavinoo\Batch\Batch $batch */
+    $batch = batch();
+    return $batch->insert($userInstance, $columns, $users->toArray(), $batchSize);
 });
+
+
+/**
+ * UPDATE BATCH
+ */
+Route::get("/batch-update", function () {
+    $postInstance = new Post;
+
+    $toUpdate = [
+        [
+            "id" => 1,
+            "likes" => ["*", 2], // multiplica
+            "dislikes" => ["/", 2], // divide
+        ],
+        [
+            "id" => 2,
+            "likes" => ["-", 2], // resta
+            "title" => "Nuevo título",
+        ],
+        [
+            "id" => 3,
+            "likes" => ["+", 5], // suma
+        ],
+        [
+            "id" => 4,
+            "likes" => ["*", 2], // multiplica
+        ],
+    ];
+
+    $index = "id";
+
+    /** @var Mavinoo\Batch\Batch $batch */
+    $batch = batch();
+    return $batch->update($postInstance, $toUpdate, $index);
+});
+
+
+
